@@ -10,28 +10,73 @@ date: "10 janvier 2022"
 https://cran.r-project.org/web/packages/dbscan/readme/README.html
 
 ```{r}
-library("dbscan")
-
+library(dbscan)
+library(ggpubr)
+library(factoextra)
+library(ggplot2)
+library(fpc)
 ```
 
 
 ## Exercice 1  : Jeux de données  de petite dimension
 
-Sur un jeu de données de dimension 2 ou 3 de votre choix, par exemple un des jeux de données dans **Données**, ou **sismic_data.csv** ou autre : 
+Sur un jeu de données de dimension 2 ou 3 de votre choix, par exemple un des jeux de données dans **Données**, ou **sismic_data.csv** ou autre :
+
+#### Importation des données
+
+Nous allons travaillé sur le jeu de données **Lsun.lrn**. Ce jeu de données est composé de 400 lignes et 3 colonnes : une colonne x, une colonne y et la colonne des labels.
+
+```{r}
+P <-  read.csv(file = "Lsun.lrn", header = FALSE, sep = "\t", skip = 4)[,-1]
+true_label <-  as.factor(read.csv(file = "Lsun.cls", header = FALSE, sep = "\t",skip = 1)[,-c(1,3)])
+data <-  data.frame(x = P[,1], y = P[,2],true_label = as.factor(label))
+head(data)
+```
+```{r}
+g <- ggplot(data = data_P, aes(x=x, y =y)) + geom_point(aes(col = true_label))
+g
+```
 
 ### Question 1 : Implémenter deux méthodes de partitionnement de votre choix (i.e. méthode de classification non supervisée vue en cours)
 
+#### Méthode 1 : k-means
+
+```{r}
+# On choisit k = 3 
+set.seed(123)
+res.km <- kmeans(data, 3 , nstart = 25)
+predict_label.km <- as.character(res.km$cluster)
+```
+
+#### Méthode 2 :
+
+```{r}
+set.seed(123)
+res.dbscan <- 
+predict_label.dbscan <- 
+```
 
 
+### Question 2 : Bien présenter les résultats obtenus, les comparer visuellement aux vraies étiquettes lorsqu'elles sont connues.
 
-### Question 2 : Bien présenter les résultats obtenus, les comparervisuellement aux vraies étiquettes lorsqu'ellles sont connues.
+#### Méthode 1 : 
 
-
-
-
-
+```{r}
+g <- ggplot(data = data, aes(x=x, y =y)) + geom_point(aes(col = true_label, shape = predict_label.km))
+g
+```
 
 ### Question 3 : Pour chacune des méthodes utilisées, expliquer son fonctionnement
+
+#### Méthode 1 : k-means
+
+EXPLIQUER LA METHODE DES K-MEANS
+
+#### Méthode 2 : dbscan
+
+EXPLIQUER LA METHODE DES DBSCAN
+
+
 
 ## Exercice 2
 
