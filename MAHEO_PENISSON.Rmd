@@ -52,19 +52,28 @@ predict_label.km <- as.character(res.km$cluster)
 
 ```{r}
 set.seed(123)
-res.dbscan <- 
-predict_label.dbscan <- 
+res.dbscan <- dbscan(data[,1:2], eps = 0.5, MinPts = )
+predict_label.dbscan <- as.factor(res.dbscan$cluster)
 ```
 
 
 ### Question 2 : Bien présenter les résultats obtenus, les comparer visuellement aux vraies étiquettes lorsqu'elles sont connues.
 
-#### Méthode 1 : 
+#### Méthode 1 : k-means
 
 ```{r}
 g <- ggplot(data = data, aes(x=x, y =y)) + geom_point(aes(col = true_label, shape = predict_label.km))
 g
 ```
+DECRIRE LE GRAPHIQUE 
+
+#### Méthode 2 : dbscan
+
+```{r}
+g <- ggplot(data = data, aes(x=x, y =y)) + geom_point(aes(col = true_label, shape = predict_label.dbscan))
+g
+```
+
 
 ### Question 3 : Pour chacune des méthodes utilisées, expliquer son fonctionnement
 
