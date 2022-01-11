@@ -1,125 +1,188 @@
 ---
-title: "Modèles linéaires en grande dimension"
-output: html_notebook
-author: "MAHEO Manon - PENISSON Valentin"
-date: "10 janvier 2022"
+title: "Partitionnement sur les données"
+author: "Manon MAHEO - Valentin PENISSON"
+date: "11/01/2022"
+output: pdf_document
 ---
 
-## Packages : 
+\begin{center}
+ \rule{0.5\linewidth}{2pt}
+ \end{center}
+ 
 
-https://cran.r-project.org/web/packages/dbscan/readme/README.html
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
 
 ```{r}
+# Installations nécessaires
+# https://cran.r-project.org/web/packages/dbscan/readme/README.html
+
 library(dbscan)
 library(ggpubr)
 library(factoextra)
 library(ggplot2)
 library(fpc)
+library(cluster)
 ```
 
+## Exercice 1 (Jeux de données de petite dimension).
 
-## Exercice 1  : Jeux de données  de petite dimension
+### Importation des données
 
-Sur un jeu de données de dimension 2 ou 3 de votre choix, par exemple un des jeux de données dans **Données**, ou **sismic_data.csv** ou autre :
-
-#### Importation des données
-
-Nous allons travaillé sur le jeu de données **Lsun.lrn**. Ce jeu de données est composé de 400 lignes et 3 colonnes : une colonne x, une colonne y et la colonne des labels.
+Nous allons travailler sur le jeu de données ***Lsun.lrn***. On utilise également le fichier ***Lsun.cls*** pour obtenir les labels. 
 
 ```{r}
-P <-  read.csv(file = "Lsun.lrn", header = FALSE, sep = "\t", skip = 4)[,-1]
-true_label <-  as.factor(read.csv(file = "Lsun.cls", header = FALSE, sep = "\t",skip = 1)[,-c(1,3)])
-data <-  data.frame(x = P[,1], y = P[,2],true_label = as.factor(true_label))
+# Importation des variables continues 
+lsun <-  read.csv(file = "Lsun.lrn", header = FALSE, sep = "\t", skip = 4)[,-1]
+head(lsun)
+# Ici, on enlève les 4 premières lignes du fichier avec skip = 4 
+# et on ne conserve pas l'index des lignes en retirant la première colonne
+```
+
+```{r}
+# Importation des labels
+labels <-  as.factor(read.csv(file = "Lsun.cls", header = FALSE, 
+                              sep = "\t",skip = 1)[,-c(1,3)])
+head(labels)
+```
+
+```{r}
+# Fusion et création de notre jeu de données
+data <-  data.frame(x = lsun[,1], y = lsun[,2], labels = labels)
 head(data)
 ```
-```{r}
-g <- ggplot(data = data, aes(x=x, y =y)) + geom_point(aes(shape = true_label))
-g
+
+Notre jeu de données data contient ainsi des données 2D avec **trois classes distinctes** (i.e classes 1, 2 et 3). L'ensemble de données se compose donc de n = 400 points dans trois groupes distincts sur un plan.
+
+```{r, warning = FALSE}
+# Visualisation des données
+graph <- ggplot(data = data, aes(x=x, y =y)) + geom_point(aes(color = labels)) +
+  ggtitle("Original data")
+graph
 ```
 
-### Question 1 : Implémenter deux méthodes de partitionnement de votre choix (i.e. méthode de classification non supervisée vue en cours)
-
-#### Méthode 1 : k-means
+Deux classes sont dessinées uniformément réparties à l'intérieur d'un rectangle de 1 × 4. Ces classes sont disposées sous la forme d'un « L » avec un espace entre les deux. Le troisième groupe est tiré d'une gaussienne standard bidimensionnelle indépendante et identiquement distribuée centrée en (3,2.5). Les classes sont bien séparées par une distance minimale de 0,6 et les classes sont linéairement séparables.
 
 ```{r}
+# Gestion des données manquantes
+
+manquant <- is.na(data)
+sum(manquant)
+```
+
+Il n'y a pas de donnée manquante.
+
+```{r}
+# Echelle des variables 
+# On peut avoir des groupes très différents selon l’unité choisie. 
+# Il est important d’avoir des variables avec la même unité. 
+par(mfrow=c(1,2))
+for (i in 1:2) boxplot(data[,i], main=paste("Variable ",names(data)[i],sep=""))
+```
+
+On peut faire des boxplots et voir si les échelles sont vraiment différentes. Ici il n'est pas vraiment nécessaire de standardiser les données avec la fonction scale().
+
+### Question 1 : Implémenter deux méthodes de partitionnement de votre choix (i.e. méthode de classification non supervisée vue en cours).
+
+On se place ici dans une approche non-supervisée (i.e clustering). On dispose juste des individus mais pas des groupes. L’objectif est de rassembler des individus en classes créées de toute pièce. L’objectif est de constituer k groupes ou partitions homogènes à partir de ces individus. Les conditions sont les suivantes : les individus appartiennent à un seul groupe, on veut des groupes compacts (i.e variance faible au sein d’un groupe) et des groupes bien séparés (i.e variance forte entre les groupes). On implémente ici la méthode des k-means et la méthode dbscan.
+
+#### Méthode 1 : K-means
+
+```{r, warning = FALSE}
+# On implémente ici la méthode k-means
 # On choisit k = 3 car il y a trois labels différents
 set.seed(123)
 res.km <- kmeans(data[,1:2], 3 , nstart = 25)
+res.km
+```
+
+On observe ici dans quelle classe les individus ont été affectés et l'inertie intra-classes au sein de chaque des classe.
+
+```{r}
+# On lance ici les prédictions
 predict_label.km <- as.character(res.km$cluster)
 ```
 
-#### Méthode 2 :
+#### Méthode 2 : DBSCAN (clustering basé sur la densité)
 
 ```{r}
+# On implémente ici la méthode dbscan
 set.seed(123)
-res.dbscan <- dbscan(data[,1:2], eps = 0.5, MinPts = )
+res.dbscan <- dbscan(data[,1:2], eps = 0.5, MinPts = 2)
+res.dbscan
+```
+
+```{r}
+# Prédiction de la méthode dbscan
 predict_label.dbscan <- as.factor(res.dbscan$cluster)
 ```
 
-
 ### Question 2 : Bien présenter les résultats obtenus, les comparer visuellement aux vraies étiquettes lorsqu'elles sont connues.
 
-#### Méthode 1 : k-means
+#### Méthode 1 : K-means
 
 ```{r}
+# Visualisation du partitionnement avec kmeans et comparaison
+graph
 fviz_cluster(res.km, data = data[,1:2],
              palette = c("#2E9FDF", "#00AFBB", "#E7B800"), 
              geom = "point",
              ellipse.type = "convex", 
-             ggtheme = theme_bw()
+             ggtheme = theme_bw(),
+             main = "Partitionnement kmeans"
              )
+clusplot(data,res.km$cluster,labels=3,col.p=as.numeric(data$labels))
 ```
-Ce graphique représente, grâce aux couleurs le vrai label et grâce à la formela valeur prédite. Cette première méthode des k-means avec k = 3 retrouve une partie nos trois groupes de départ. En effet, quelques individus du groupe 1 sont associés au groupe 3 (orange) tout comme des individus du groupe 
-
-#### Méthode 2 : dbscan
 
 ```{r}
+table(res.km$cluster, data$labels)
+```
+
+Si on compare les deux graphiques, on remarque visuellement que certains individus du groupe 1 (en rouge) ont été classés dans le groupe bleu (groupe 1) avec le partitionnement de kmeans. Egalement, certains individus du groupe 2 (en vert) ont été classés dans le groupe vert (groupe 2) du partitionnement de kmeans. Plus particulièrement, on si on prend les individus prédits dans le groupe 1 avec l'algorithme de kmeans, 68 sont dans le bon groupe mais 97 sont dans le mauvais (et sont dans le groupe 3).
+
+Nous allons tenter ici des modifications de l’algorithme des k-means avec des fonctions distance différentes que la norme Euclidienne. En ce sens, il est important aussi de savoir appliquer des méthodes de partitionnement de données plus évoluées que l’algorithme des K-means.
+
+```{r}
+# Amélioration de l'algorithme des K-means
+```
+
+#### Méthode 2 : DBSCAN (clustering basé sur la densité)
+
+```{r}
+# Visualisation du partitionnement avec dbscan et comparaison
+graph
 fviz_cluster(res.dbscan, data = data[,1:2],
              palette = c("#2E9FDF", "#00AFBB", "#E7B800"), 
              geom = "point",
              ellipse.type = "convex", 
-             ggtheme = theme_bw()
+             ggtheme = theme_bw(),
+             main = "Partitionnement dbscan"
              )
+clusplot(data,res.dbscan$cluster,labels=3,col.p=as.numeric(data$labels))
 ```
-La méthode dbscan, quant à elle, classe parfaitement chaque individu dans leur classe respective.
 
-### Question 3 : Pour chacune des méthodes utilisées, expliquer son fonctionnement
+```{r}
+table(res.dbscan$cluster, data$labels)
+```
 
-#### Méthode 1 : k-means
+Avec l'algorithme dbscan, on observe un partitionnement parfait des données. Chaque individu est prédit dans le bon groupe.
 
-L'algorithme des k-means est un algorithme de classification non supervisée, c'est à dire qu'à partir simplement de données explicatives 'X', il définit des k groupes. En effet, la classification a pour objectif de consituter des groupes aussi homogènes que possible tout en  étant bien distinctement séparés.
+### Question 3 : Pour chacune des méthodes utilisées, expliquer son fonctionnement.
 
-L'algorithme des k-means cherche donc à définir K classes $C_1, C_2, ..., C_K$ tels que $\cup_{k=1}^K C_k = \mathbb{X} $. son objectif est de minimiser l'inertie intra-classes, c'est à dire de trouver les K centres $c_1^*, c_2^*, ..., c_K^*$ et les K classes $C_1^*, C_2^*, ..., C_K^*$ mnimisant : $(c_1,c_2,...,c_K) \mapsto \frac{1}{n} \sum_{i=1}^N min_{k=1,...,K} ||x-\overline{x}_{C_k}||^2$. L'algorithme fonctionne de la façon suivante : 
+#### Méthode 1 : K-means
 
-1 : on chosit un nombre de classes k (ici k = 3). 
-2 : on choisit aléatoirement $c_1^*, c_2^*, ..., c_K^*$, nos K centroïdes.
-3 : pour chaque point $x_i$, on cherche le centroïde $c_1^*, c_2^*, ..., c_K^*$ le plus proche et on lui associe $x_i$.
-4 : pour chaque classe $j = 1,...K$ : on calcule les nouvelles coordonnées du centroïde en faisant la moyenne des points qui lui ont été associés.
-5 : on répète les étapes 3 et 4 un grand nombre de fois (par exemple 10 000) ou jusqu'à convergence.
+L'algorithme des k-means est un algorithme de classification non supervisée qui cherche à définir K classes $C_1, C_2, ..., C_K$ tels que $\cup_{k=1}^K C_k = \mathbb{X}$. Son objectif est de minimiser l'inertie intra-classes, ou de trouver les K centres $c_1^*, c_2^*, ..., c_K^*$ et les K classes $C_1^*, C_2^*, ..., C_K^*$ mnimisant $(c_1,c_2,...,c_K) \mapsto \frac{1}{n} \sum_{i=1}^N min_{k=1,...,K} ||x-\overline{x}_{C_k}||^2$. L'algorithme fonctionne de la façon suivante : on chosit un nombre de classes k (ici k = 3). Puis, on choisit aléatoirement $c_1^*, c_2^*, ..., c_K^*$, nos K centroïdes. Pour chaque point $x_i$, on cherche le centroïde $c_1^*, c_2^*, ..., c_K^*$ le plus proche et on lui associe $x_i$. Pour chaque classe $j = 1,...K$ : on calcule les nouvelles coordonnées du centroïde en faisant la moyenne des points qui lui ont été associés. On répète les étapes deux dernières étapes un grand nombre de fois (par exemple 10 000) ou jusqu'à convergence.
 
+#### Méthode 2 : DBSCAN (clustering basé sur la densité)
 
-#### Méthode 2 : dbscan
-
-Tout comme l'algorithme des k-means, DBSCAN est un algorithme de classification non supervisée. Sa particularité est qu'il prend en compte la géométrie des données en s'appuyant sur une fonction de distance. En effet, cette méthode s'appuie sur deux paramètres : la distance $\epsilon$ et $MinPts$, le nombre de points minimum devant se trouver dans un rayon $\epsilon$ pour être considérés comme une classe. Cette méthode créee donc, en fonction de ces paramètres, un certain nombre de classes : ce n'est donc pas l'utilisateur qui le définit au préalable. L'idée de cet algorithme est de prendre un point, d'observer ses points voisins dans le rayon $\epsilon$, et de regarder s'il vérifit bien $MinPts$. Dans ce cas, le point choisit fait parti d'un cluster. 
-
-L'algorithme DBSCAN fonctionne de la façon suivante : 
-
-pour chaque point p non visité du jeu de données : 
-  marquer comme vu le point p
-  chercher tous les points voisins de p (= tous les points autour de p avec un rayon $\epsilon$).
-  si p a moins de voisins que $MinPts$ :
-          on définit p comme un point aberrant
-      sinon :
-          on ajoute p à une classe C
-          pour chaque point p' des points voisins de p:
-            si p' n'a pas été visité:
-              marquer p' comme visité
-              chercher tous les points voisins de p'
-              si p' a plus de voisins que $MinPts$ :
-                jointure des voisins de p et de p'
-            si p' n'a pas encore de classe C:
-              ajouter p' à C
+Tout comme l'algorithme des k-means, DBSCAN est un algorithme de classification non supervisée. DBSCAN est une méthode de partitionnement qui a été introduite dans Ester et al. (1996). Sa particularité est qu'il prend en compte la géométrie des données en se reposant sur des densités ou des fonctions distance. En effet, cette méthode s'appuie sur deux paramètres : la distance $\epsilon$ et $MinPts$, le nombre de points minimum devant se trouver dans un rayon $\epsilon$ pour être considérés comme une classe. Cette méthode créee donc, en fonction de ces paramètres, un certain nombre de classes : ce n'est donc pas l'utilisateur qui le définit au préalable. L'idée de cet algorithme est de prendre un point, d'observer ses points voisins dans le rayon $\epsilon$, et de regarder s'il vérifit bien $MinPts$. Dans ce cas, le point choisit fait parti d'un cluster. L'algorithme DBSCAN fonctionne de la façon suivante : pour chaque point p non visité du jeu de données, marquer comme vu le point p. Chercher tous les points voisins de p (= tous les points autour de p avec un rayon $\epsilon$). Si p a moins de voisins que $MinPts$ : on définit p comme un point aberrant. Sinon : on ajoute p à une classe C. Pour chaque point p' des points voisins de p : si p' n'a pas été visité, on marque p' comme visité. On cherche tous les points voisins de p'. Si p' a plus de voisins que $MinPts$ : jointure des voisins de p et de p'. Si p' n'a pas encore de classe C on ajoute p' à C. 
               
-## Exercice 2
+## Exercice 2 (Partitionnement de données en plus grande dimension).
 
 ### Question 1 : Appliquer une méthode de partitionnement de données sur un jeu de données réelles de votre choix, issues par exemple de : *https://www.cs.ucr.edu/~eamonn/time_series_data_2018/*
+
+```{r}
+
+```
+
