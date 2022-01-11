@@ -183,6 +183,21 @@ Tout comme l'algorithme des k-means, DBSCAN est un algorithme de classification 
 ### Question 1 : Appliquer une méthode de partitionnement de données sur un jeu de données réelles de votre choix, issues par exemple de : *https://www.cs.ucr.edu/~eamonn/time_series_data_2018/*
 
 ```{r}
+# S4 method for formula
+kkmeans(x, data = NULL, na.action = na.omit, ...)
+# S4 method for matrix
+kkmeans(x, centers, kernel = "rbfdot", kpar = "automatic",
+        alg="kkmeans", p=1, na.action = na.omit, ...)
 
+# S4 method for kernelMatrix
+kkmeans(x, centers, ...)
+
+# S4 method for list
+kkmeans(x, centers, kernel = "stringdot",
+        kpar = list(length=4, lambda=0.5),
+        alg ="kkmeans", p = 1, na.action = na.omit, ...)
 ```
+https://www.rdocumentation.org/packages/kernlab/versions/0.9-29/topics/kkmeans
 
+
+kernel gaussien : kernel = "rbfdot"
